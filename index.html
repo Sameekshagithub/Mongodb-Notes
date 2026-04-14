@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>MongoDB Notes — Sameeksha</title>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=IBM+Plex+Mono:wght@400;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --navy:      #0a1628;
+      --dark-blue: #0d2045;
+      --mid-blue:  #1a3a6b;
+      --royal:     #1e4db7;
+      --accent:    #2563eb;
+      --bright:    #3b82f6;
+      --sky:       #60a5fa;
+      --white:     #ffffff;
+      --off-white: #f8faff;
+      --light:     #e8f0fe;
+      --muted:     #94a3b8;
+      --text:      #1e293b;
+      --border:    #bfdbfe;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--white);
+      color: var(--text);
+      line-height: 1.7;
+    }
+
+    /* ── HERO HEADER ── */
+    header {
+      background: linear-gradient(135deg, var(--navy) 0%, var(--dark-blue) 40%, var(--mid-blue) 100%);
+      color: var(--white);
+      padding: 60px 40px 50px;
+      position: relative;
+      overflow: hidden;
+    }
+    header::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 80% 50%, rgba(59,130,246,.18) 0%, transparent 65%),
+                  radial-gradient(ellipse at 10% 80%, rgba(30,77,183,.25) 0%, transparent 55%);
+    }
+    header::after {
+      content: '';
+      position: absolute;
+      bottom: -1px; left: 0; right: 0;
+      height: 40px;
+      background: var(--white);
+      clip-path: ellipse(55% 100% at 50% 100%);
+    }
+    .header-inner { position: relative; max-width: 900px; margin: 0 auto; }
+    .db-badge {
+      display: inline-block;
+      background: rgba(96,165,250,.15);
+      border: 1px solid rgba(96,165,250,.4);
+      color: var(--sky);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: .72rem;
+      padding: 4px 14px;
+      border-radius: 20px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      margin-bottom: 18px;
+    }
+    header h1 {
+      font-family: 'Playfair Display', serif;
+      font-size: clamp(2.4rem, 5vw, 3.8rem);
+      font-weight: 900;
+      line-height: 1.1;
+      letter-spacing: -.02em;
+    }
+    header h1 span { color: var(--sky); }
+    .author-line {
+      margin-top: 16px;
+      font-size: .95rem;
+      color: rgba(255,255,255,.65);
+      display: flex; align-items: center; gap: 10px;
+    }
+    .author-line strong { color: var(--sky); font-weight: 600; }
+    .dot { width: 5px; height: 5px; background: var(--sky); border-radius: 50%; }
+
+    /* ── LAYOUT ── */
+    .container {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 28px 80px;
+    }
+
+    /* ── TOC ── */
+    .toc {
+      margin: 52px 0 56px;
+      background: var(--off-white);
+      border: 1.5px solid var(--border);
+      border-left: 5px solid var(--accent);
+      border-radius: 12px;
+      padding: 28px 32px;
+    }
+    .toc-title {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: .78rem;
+      color: var(--accent);
+      letter-spacing: .18em;
+      text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .toc ul { list-style: none; columns: 2; gap: 24px; }
+    .toc li { margin-bottom: 8px; }
+    .toc a {
+      color: var(--mid-blue);
+      text-decoration: none;
+      font-size: .92rem;
+      font-weight: 500;
+      display: flex; align-items: center; gap: 8px;
+      transition: color .2s;
+    }
+    .toc a:hover { color: var(--accent); }
+    .toc a::before {
+      content: '';
+      display: inline-block;
+      width: 6px; height: 6px;
+      background: var(--bright);
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    /* ── SECTION ── */
+    section { margin-bottom: 60px; }
+    .section-header {
+      display: flex; align-items: center; gap: 16px;
+      margin-bottom: 26px;
+      padding-bottom: 14px;
+      border-bottom: 2px solid var(--light);
+    }
+    .section-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: .7rem;
+      background: var(--accent);
+      color: #fff;
+      padding: 4px 10px;
+      border-radius: 6px;
+      letter-spacing: .08em;
+    }
+    h2 {
+      font-family: 'Playfair Display', serif;
+      font-size: 1.65rem;
+      font-weight: 700;
+      color: var(--navy);
+    }
+
+    h3 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--mid-blue);
+      margin: 28px 0 10px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    h3::before {
+      content: '▸';
+      color: var(--bright);
+      font-size: .85rem;
+    }
+
+    p { margin-bottom: 12px; font-size: .97rem; }
+
+    /* ── CODE ── */
+    pre {
+      background: var(--navy);
+      color: #e2e8f0;
+      padding: 20px 24px;
+      border-radius: 10px;
+      overflow-x: auto;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: .83rem;
+      line-height: 1.65;
+      margin: 14px 0 20px;
+      border-left: 4px solid var(--bright);
+      position: relative;
+    }
+    pre .comment { color: #64748b; }
+    pre .keyword { color: #93c5fd; font-weight: 600; }
+    pre .string  { color: #86efac; }
+    pre .method  { color: #fde68a; }
+    pre .brace   { color: #f9a8d4; }
+    .code-label {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: .7rem;
+      color: var(--muted);
+      letter-spacing: .1em;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+
+    /* ── CARDS ── */
+    .card-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin: 18px 0; }
+    .card {
+      background: var(--off-white);
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 18px 20px;
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .card:hover { border-color: var(--bright); box-shadow: 0 4px 20px rgba(59,130,246,.1); }
+    .card-icon { font-size: 1.5rem; margin-bottom: 8px; }
+    .card h4 { font-size: .95rem; font-weight: 600; color: var(--navy); margin-bottom: 4px; }
+    .card p  { font-size: .87rem; color: #475569; margin: 0; }
+
+    /* ── TABLE ── */
+    table { width: 100%; border-collapse: collapse; margin: 18px 0; font-size: .9rem; }
+    thead tr { background: var(--navy); color: #fff; }
+    th { padding: 12px 16px; text-align: left; font-weight: 600; font-family: 'IBM Plex Mono', monospace; font-size: .8rem; letter-spacing: .06em; }
+    td { padding: 11px 16px; border-bottom: 1px solid var(--border); }
+    tr:nth-child(even) td { background: var(--off-white); }
+    tr:hover td { background: var(--light); }
+
+    /* ── CALLOUT ── */
+    .callout {
+      display: flex; gap: 14px;
+      background: var(--light);
+      border: 1px solid var(--border);
+      border-left: 5px solid var(--accent);
+      border-radius: 10px;
+      padding: 16px 20px;
+      margin: 18px 0;
+    }
+    .callout-icon { font-size: 1.3rem; flex-shrink: 0; }
+    .callout p { margin: 0; font-size: .9rem; color: var(--mid-blue); }
+    .callout strong { color: var(--navy); }
+
+    /* ── LIST ── */
+    ul.notes-list { list-style: none; margin: 10px 0 18px; }
+    ul.notes-list li {
+      padding: 7px 0 7px 22px;
+      border-bottom: 1px solid var(--light);
+      position: relative;
+      font-size: .93rem;
+    }
+    ul.notes-list li::before {
+      content: '•';
+      position: absolute; left: 4px;
+      color: var(--bright);
+      font-weight: 700;
+    }
+
+    /* ── OPERATOR TABLE ── */
+    .op-badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: .78rem;
+      background: var(--navy);
+      color: var(--sky);
+      padding: 2px 8px;
+      border-radius: 5px;
+    }
+
+    /* ── FOOTER ── */
+    footer {
+      background: var(--navy);
+      color: rgba(255,255,255,.5);
+      text-align: center;
+      padding: 28px 20px;
+      font-size: .85rem;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    footer strong { color: var(--sky); }
+
+    @media (max-width: 640px) {
+      .card-grid { grid-template-columns: 1fr; }
+      .toc ul { columns: 1; }
+      header { padding: 40px 20px 50px; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ════════ HEADER ════════ -->
+<header>
+  <div class="header-inner">
+    <div class="db-badge">📘 Database Notes</div>
+    <h1>MongoDB<br/><span>Complete Guide</span></h1>
+    <div class="author-line">
+      <span>Prepared by</span>
+      <div class="dot"></div>
+      <strong>Sameeksha</strong>
+      <div class="dot"></div>
+      <span>2025</span>
+    </div>
+  </div>
+</header>
+
+<div class="container">
+
+  <!-- ════════ TOC ════════ -->
+  <nav class="toc">
+    <div class="toc-title">Table of Contents</div>
+    <ul>
+      <li><a href="#s1">Introduction to MongoDB</a></li>
+      <li><a href="#s2">Installation & Setup</a></li>
+      <li><a href="#s3">Core Concepts</a></li>
+      <li><a href="#s4">CRUD Operations</a></li>
+      <li><a href="#s5">Query Operators</a></li>
+      <li><a href="#s6">Aggregation Pipeline</a></li>
+      <li><a href="#s7">Indexes</a></li>
+      <li><a href="#s8">Schema Design</a></li>
+      <li><a href="#s9">Relationships</a></li>
+      <li><a href="#s10">Mongoose ODM</a></li>
+      <li><a href="#s11">Transactions</a></li>
+      <li><a href="#s12">Security & Best Practices</a></li>
+    </ul>
+  </nav>
+
+  <!-- ════════ 1. INTRODUCTION ════════ -->
+  <section id="s1">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2>Introduction to MongoDB</h2>
+    </div>
+    <p>MongoDB is an open-source, cross-platform <strong>NoSQL document database</strong> developed by MongoDB Inc. Instead of storing data in rows and columns like relational databases, MongoDB stores data as flexible <strong>BSON (Binary JSON)</strong> documents inside collections.</p>
+
+    <div class="card-grid">
+      <div class="card"><div class="card-icon">🗄️</div><h4>Document-Oriented</h4><p>Data stored as BSON documents — rich, flexible, self-describing.</p></div>
+      <div class="card"><div class="card-icon">⚡</div><h4>High Performance</h4><p>Embedded data reduces I/O and supports fast read/write workloads.</p></div>
+      <div class="card"><div class="card-icon">📦</div><h4>Scalable</h4><p>Horizontal scaling via sharding across multiple servers.</p></div>
+      <div class="card"><div class="card-icon">🔄</div><h4>Flexible Schema</h4><p>No predefined schema — documents in a collection can differ.</p></div>
+    </div>
+
+    <h3>MongoDB vs SQL</h3>
+    <table>
+      <thead><tr><th>SQL Term</th><th>MongoDB Equivalent</th><th>Description</th></tr></thead>
+      <tbody>
+        <tr><td>Database</td><td>Database</td><td>Container for collections</td></tr>
+        <tr><td>Table</td><td>Collection</td><td>Group of documents</td></tr>
+        <tr><td>Row</td><td>Document</td><td>A single record (BSON)</td></tr>
+        <tr><td>Column</td><td>Field</td><td>Key-value pair in a document</td></tr>
+        <tr><td>Primary Key</td><td>_id</td><td>Unique identifier per document</td></tr>
+        <tr><td>JOIN</td><td>$lookup</td><td>Combining data from collections</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- ════════ 2. INSTALLATION ════════ -->
+  <section id="s2">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2>Installation & Setup</h2>
+    </div>
+    <h3>Install MongoDB (Ubuntu/Debian)</h3>
+    <div class="code-label">bash</div>
+    <pre><span class="comment"># Import public GPG key</span>
+wget -qO - https://www.mongodb.org/static/pgp/server-7.0.asc | sudo apt-key add -
+
+<span class="comment"># Add MongoDB repo</span>
+echo <span class="string">"deb [ arch=amd64,arm64 ] https://repo.mongodb.org/apt/ubuntu focal/mongodb-org/7.0 multiverse"</span> | sudo tee /etc/apt/sources.list.d/mongodb-org-7.0.list
+
+<span class="comment"># Install</span>
+sudo apt-get update
+sudo apt-get install -y mongodb-org
+
+<span class="comment"># Start MongoDB service</span>
+sudo systemctl start mongod
+sudo systemctl enable mongod</pre>
+
+    <h3>Connect via Mongo Shell</h3>
+    <div class="code-label">shell</div>
+    <pre><span class="comment"># Start the shell</span>
+mongosh
+
+<span class="comment"># Show all databases</span>
+show dbs
+
+<span class="comment"># Switch / create database</span>
+use myDatabase
+
+<span class="comment"># Show collections</span>
+show collections</pre>
+  </section>
+
+  <!-- ════════ 3. CORE CONCEPTS ════════ -->
+  <section id="s3">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2>Core Concepts</h2>
+    </div>
+
+    <h3>Documents</h3>
+    <p>A document is a JSON-like object made of key-value pairs. MongoDB stores documents as BSON (Binary JSON) which supports additional data types.</p>
+    <div class="code-label">document example</div>
+    <pre><span class="brace">{</span>
+  <span class="string">"_id"</span>: ObjectId(<span class="string">"64e1a2b3c4d5e6f7a8b9c0d1"</span>),
+  <span class="string">"name"</span>: <span class="string">"Sameeksha"</span>,
+  <span class="string">"age"</span>: 22,
+  <span class="string">"email"</span>: <span class="string">"sameeksha@example.com"</span>,
+  <span class="string">"skills"</span>: [<span class="string">"MongoDB"</span>, <span class="string">"Node.js"</span>, <span class="string">"React"</span>],
+  <span class="string">"address"</span>: <span class="brace">{</span>
+    <span class="string">"city"</span>: <span class="string">"Bengaluru"</span>,
+    <span class="string">"pincode"</span>: <span class="string">"560001"</span>
+  <span class="brace">}</span>,
+  <span class="string">"createdAt"</span>: ISODate(<span class="string">"2024-01-15T10:30:00Z"</span>)
+<span class="brace">}</span></pre>
+
+    <h3>ObjectId</h3>
+    <p>MongoDB auto-generates a unique <code>_id</code> field of type <strong>ObjectId</strong> for every document. It is a 12-byte identifier containing a timestamp, machine ID, process ID, and a random counter.</p>
+
+    <div class="callout">
+      <div class="callout-icon">💡</div>
+      <p><strong>Tip:</strong> ObjectId embeds a creation timestamp, so you can extract when a document was created using <code>ObjectId.getTimestamp()</code> — no separate <code>createdAt</code> field needed!</p>
+    </div>
+
+    <h3>BSON Data Types</h3>
+    <ul class="notes-list">
+      <li><strong>String</strong> — UTF-8 encoded text</li>
+      <li><strong>Integer</strong> — 32-bit or 64-bit signed integer</li>
+      <li><strong>Double</strong> — 64-bit IEEE 754 floating point</li>
+      <li><strong>Boolean</strong> — true / false</li>
+      <li><strong>Date</strong> — UTC datetime stored as milliseconds since epoch</li>
+      <li><strong>Array</strong> — Ordered list of values</li>
+      <li><strong>Object</strong> — Embedded/nested document</li>
+      <li><strong>ObjectId</strong> — 12-byte unique identifier</li>
+      <li><strong>Null</strong> — Represents a null/absent value</li>
+      <li><strong>Binary Data</strong> — Used for images, files, etc.</li>
+      <li><strong>Decimal128</strong> — High-precision decimal (for financial data)</li>
+    </ul>
+  </section>
+
+  <!-- ════════ 4. CRUD ════════ -->
+  <section id="s4">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2>CRUD Operations</h2>
+    </div>
+
+    <h3>Create — Insert Documents</h3>
+    <div class="code-label">mongosh</div>
+    <pre><span class="comment">// Insert one document</span>
+db.<span class="method">students</span>.<span class="method">insertOne</span>(<span class="brace">{</span>
+  name: <span class="string">"Sameeksha"</span>,
+  branch: <span class="string">"Computer Science"</span>,
+  year: 3
+<span class="brace">}</span>)
+
+<span class="comment">// Insert multiple documents</span>
+db.<span class="method">students</span>.<span class="method">insertMany</span>([
+  <span class="brace">{</span> name: <span class="string">"Arjun"</span>, year: 2 <span class="brace">}</span>,
+  <span class="brace">{</span> name: <span class="string">"Priya"</span>, year: 4 <span class="brace">}</span>
+])</pre>
+
+    <h3>Read — Find Documents</h3>
+    <div class="code-label">mongosh</div>
+    <pre><span class="comment">// Find all documents</span>
+db.<span class="method">students</span>.<span class="method">find</span>()
+
+<span class="comment">// Find with filter</span>
+db.<span class="method">students</span>.<span class="method">find</span>(<span class="brace">{</span> year: 3 <span class="brace">}</span>)
+
+<span class="comment">// Find one document</span>
+db.<span class="method">students</span>.<span class="method">findOne</span>(<span class="brace">{</span> name: <span class="string">"Sameeksha"</span> <span class="brace">}</span>)
+
+<span class="comment">// Projection (select specific fields)</span>
+db.<span class="method">students</span>.<span class="method">find</span>(<span class="brace">{}</span>, <span class="brace">{</span> name: 1, branch: 1, _id: 0 <span class="brace">}</span>)
+
+<span class="comment">// Sort, Limit, Skip</span>
+db.<span class="method">students</span>.<span class="method">find</span>().<span class="method">sort</span>(<span class="brace">{</span> name: 1 <span class="brace">}</span>).<span class="method">limit</span>(5).<span class="method">skip</span>(10)</pre>
+
+    <h3>Update — Modify Documents</h3>
+    <div class="code-label">mongosh</div>
+    <pre><span class="comment">// Update one document</span>
+db.<span class="method">students</span>.<span class="method">updateOne</span>(
+  <span class="brace">{</span> name: <span class="string">"Sameeksha"</span> <span class="brace">}</span>,
+  <span class="brace">{</span> $<span class="method">set</span>: <span class="brace">{</span> year: 4 <span class="brace">}</span> <span class="brace">}</span>
+)
+
+<span class="comment">// Update many documents</span>
+db.<span class="method">students</span>.<span class="method">updateMany</span>(
+  <span class="brace">{</span> year: 1 <span class="brace">}</span>,
+  <span class="brace">{</span> $<span class="method">set</span>: <span class="brace">{</span> status: <span class="string">"fresher"</span> <span class="brace">}</span> <span class="brace">}</span>
+)
+
+<span class="comment">// Increment a field</span>
+db.<span class="method">students</span>.<span class="method">updateOne</span>(
+  <span class="brace">{</span> name: <span class="string">"Sameeksha"</span> <span class="brace">}</span>,
+  <span class="brace">{</span> $<span class="method">inc</span>: <span class="brace">{</span> score: 10 <span class="brace">}</span> <span class="brace">}</span>
+)
+
+<span class="comment">// Upsert: insert if not found</span>
+db.<span class="method">students</span>.<span class="method">updateOne</span>(
+  <span class="brace">{</span> name: <span class="string">"Vikram"</span> <span class="brace">}</span>,
+  <span class="brace">{</span> $<span class="method">set</span>: <span class="brace">{</span> year: 2 <span class="brace">}</span> <span class="brace">}</span>,
+  <span class="brace">{</span> upsert: <span class="keyword">true</span> <span class="brace">}</span>
+)</pre>
+
+    <h3>Delete — Remove Documents</h3>
+    <div class="code-label">mongosh</div>
+    <pre><span class="comment">// Delete one document</span>
+db.<span class="method">students</span>.<span class="method">deleteOne</span>(<span class="brace">{</span> name: <span class="string">"Arjun"</span> <span class="brace">}</span>)
+
+<span class="comment">// Delete many documents</span>
+db.<span class="method">students</span>.<span class="method">deleteMany</span>(<span class="brace">{</span> year: <span class="brace">{</span> $lt: 1 <span class="brace">}</span> <span class="brace">}</span>)
+
+<span class="comment">// Drop entire collection</span>
+db.<span class="method">students</span>.<span class="method">drop</span>()
+
+<span class="comment">// Drop entire database</span>
+db.<span class="method">dropDatabase</span>()</pre>
+  </section>
+
+  <!-- ════════ 5. OPERATORS ════════ -->
+  <section id="s5">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2>Query Operators</h2>
+    </div>
+
+    <h3>Comparison Operators</h3>
+    <table>
+      <thead><tr><th>Operator</th><th>Meaning</th><th>Example</th></tr></thead>
+      <tbody>
+        <tr><td><span class="op-badge">$eq</span></td><td>Equal</td><td><code>{age: {$eq: 20}}</code></td></tr>
+        <tr><td><span class="op-badge">$ne</span></td><td>Not equal</td><td><code>{age: {$ne: 20}}</code></td></tr>
+        <tr><td><span class="op-badge">$gt</span></td><td>Greater than</td><td><code>{age: {$gt: 18}}</code></td></tr>
+        <tr><td><span class="op-badge">$gte</span></td><td>Greater or equal</td><td><code>{age: {$gte: 18}}</code></td></tr>
+        <tr><td><span class="op-badge">$lt</span></td><td>Less than</td><td><code>{age: {$lt: 30}}</code></td></tr>
+        <tr><td><span class="op-badge">$lte</span></td><td>Less or equal</td><td><code>{age: {$lte: 30}}</code></td></tr>
+        <tr><td><span class="op-badge">$in</span></td><td>In array</td><td><code>{age: {$in: [20,21,22]}}</code></td></tr>
+        <tr><td><span class="op-badge">$nin</span></td><td>Not in array</td><td><code>{age: {$nin: [20,21]}}</code></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Logical Operators</h3>
+    <div class="code-label">mongosh</div>
+    <pre><span class="comment">// $and — both conditions must be true</span>
+db.<span class="method">students</span>.<span class="method">find</span>(<span class="brace">{</span>
+  $<span class="method">and</span>: [<span class="brace">{</span> year: 3 <span class="brace">}</span>, <span class="brace">{</span> branch: <span class="string">"CS"</span> <span class="brace">}</span>]
+<span class="brace">}</span>)
+
+<span class="comment">// $or — at least one must be true</span>
+db.<span class="method">students</span>.<span class="method">find</span>(<span class="brace">{</span>
+  $<span class="method">or</span>: [<span class="brace">{</span> year: 1 <span class="brace">}</span>, <span class="brace">{</span> year: 4 <span class="brace">}</span>]
+<span class="brace">}</span>)
+
+<span class="comment">// $not — negates condition</span>
+db.<span class="method">students</span>.<span class="method">find</span>(<span class="brace">{</span>
+  year: <span class="brace">{</span> $<span class="method">not</span>: <span class="brace">{</span> $gte: 3 <span class="brace">}</span> <span class="brace">}</span>
+<span class="brace">}</span>)
+
+<span class="comment">// $nor — none must be true</span>
+db.<span class="method">students</span>.<span class="method">find</span>(<span class="brace">{</span>
+  $<span class="method">nor</span>: [<span class="brace">{</span> year: 1 <span class="brace">}</span>, <span class="brace">{</span> year: 2 <span class="brace">}</span>]
+<span class="brace">}</span>)</pre>
+
+    <h3>Element Operators</h3>
+    <div class="code-label">mongosh</div>
+    <pre><span class="comment">// $exists — field exists in document</span>
+db.<span class="method">students</span>.<span class="method">find</span>(<span class="brace">{</span> email: <span class="brace">{</span> $<span class="method">exists</span>: <span class="keyword">true</span> <span class="brace">}</span> <span class="brace">}</span>)
+
+<span class="comment">// $type — field is of specified BSON type</span>
+db.<span class="method">students</span>.<span class="method">find</span>(<span class="brace">{</span> age: <span class="brace">{</span> $<span class="method">type</span>: <span class="string">"int"</span> <span class="brace">}</span> <span class="brace">}</span>)
+
+<span class="comment">// $regex — pattern matching</span>
+db.<span class="method">students</span>.<span class="method">find</span>(<span class="brace">{</span> name: <span class="brace">{</span> $<span class="method">regex</span>: <span class="string">/^Sam/i</span> <span class="brace">}</span> <span class="brace">}</span>)</pre>
+
+    <h3>Array Operators</h3>
+    <div class="code-label">mongosh</div>
+    <pre><span class="comment">// $all — array contains all specified values</span>
+db.<span class="method">students</span>.<span class="method">find</span>(<span class="brace">{</span> skills: <span class="brace">{</span> $<span class="method">all</span>: [<span class="string">"MongoDB"</span>, <span class="string">"React"</span>] <span class="brace">}</span> <span class="brace">}</span>)
+
+<span class="comment">// $size — array has exactly n elements</span>
+db.<span class="method">students</span>.<span class="method">find</span>(<span class="brace">{</span> skills: <span class="brace">{</span> $<span class="method">size</span>: 3 <span class="brace">}</span> <span class="brace">}</span>)
+
+<span class="comment">// $elemMatch — at least one element matches all criteria</span>
+db.<span class="method">orders</span>.<span class="method">find</span>(<span class="brace">{</span>
+  items: <span class="brace">{</span>
+    $<span class="method">elemMatch</span>: <span class="brace">{</span> price: <span class="brace">{</span> $gt: 100 <span class="brace">}</span>, qty: <span class="brace">{</span> $lt: 5 <span class="brace">}</span> <span class="brace">}</span>
+  <span class="brace">}</span>
+<span class="brace">}</span>)</pre>
+  </section>
+
+  <!-- ════════ 6. AGGREGATION ════════ -->
+  <section id="s6">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2>Aggregation Pipeline</h2>
+    </div>
+    <p>The aggregation pipeline processes documents through a series of stages, each transforming the data. It is MongoDB's equivalent of SQL GROUP BY and complex queries.</p>
+
+    <h3>Pipeline Stages Overview</h3>
+    <table>
+      <thead><tr><th>Stage</th><th>Purpose</th></tr></thead>
+      <tbody>
+        <tr><td><span class="op-badge">$match</span></td><td>Filter documents (like WHERE)</td></tr>
+        <tr><td><span class="op-badge">$group</span></td><td>Group and aggregate (like GROUP BY)</td></tr>
+        <tr><td><span class="op-badge">$project</span></td><td>Reshape documents (select/add/remove fields)</td></tr>
+        <tr><td><span class="op-badge">$sort</span></td><td>Sort results</td></tr>
+        <tr><td><span class="op-badge">$limit</span></td><td>Limit number of results</td></tr>
+        <tr><td><span class="op-badge">$skip</span></td><td>Skip N documents</td></tr>
+        <tr><td><span class="op-badge">$unwind</span></td><td>Deconstruct arrays into separate documents</td></tr>
+        <tr><td><span class="op-badge">$lookup</span></td><td>Join with another collection</td></tr>
+        <tr><td><span class="op-badge">$addFields</span></td><td>Add computed fields</td></tr>
+        <tr><td><span class="op-badge">$count</span></td><td>Count documents in pipeline</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Example: Group & Count</h3>
+    <div class="code-label">mongosh</div>
+    <pre>db.<span class="method">students</span>.<span class="method">aggregate</span>([
+  <span class="comment">// Stage 1: filter year 3 and above</span>
+  <span class="brace">{</span> $<span class="method">match</span>: <span class="brace">{</span> year: <span class="brace">{</span> $gte: 3 <span class="brace">}</span> <span class="brace">}</span> <span class="brace">}</span>,
+
+  <span class="comment">// Stage 2: group by branch, count students</span>
+  <span class="brace">{</span> $<span class="method">group</span>: <span class="brace">{</span>
+    _id: <span class="string">"$branch"</span>,
+    totalStudents: <span class="brace">{</span> $<span class="method">sum</span>: 1 <span class="brace">}</span>,
+    avgScore: <span class="brace">{</span> $<span class="method">avg</span>: <span class="string">"$score"</span> <span class="brace">}</span>
+  <span class="brace">}</span> <span class="brace">}</span>,
+
+  <span class="comment">// Stage 3: sort by total students descending</span>
+  <span class="brace">{</span> $<span class="method">sort</span>: <span class="brace">{</span> totalStudents: -1 <span class="brace">}</span> <span class="brace">}</span>,
+
+  <span class="comment">// Stage 4: project output fields</span>
+  <span class="brace">{</span> $<span class="method">project</span>: <span class="brace">{</span>
+    branch: <span class="string">"$_id"</span>,
+    totalStudents: 1,
+    avgScore: <span class="brace">{</span> $<span class="method">round</span>: [<span class="string">"$avgScore"</span>, 2] <span class="brace">}</span>,
+    _id: 0
+  <span class="brace">}</span> <span class="brace">}</span>
+])</pre>
+
+    <h3>$lookup (JOIN)</h3>
+    <div class="code-label">mongosh</div>
+    <pre>db.<span class="method">orders</span>.<span class="method">aggregate</span>([
+  <span class="brace">{</span>
+    $<span class="method">lookup</span>: <span class="brace">{</span>
+      from: <span class="string">"customers"</span>,     <span class="comment">// collection to join</span>
+      localField: <span class="string">"customerId"</span>,  <span class="comment">// field in orders</span>
+      foreignField: <span class="string">"_id"</span>,        <span class="comment">// field in customers</span>
+      as: <span class="string">"customerInfo"</span>         <span class="comment">// output array field</span>
+    <span class="brace">}</span>
+  <span class="brace">}</span>
+])</pre>
+  </section>
+
+  <!-- ════════ 7. INDEXES ════════ -->
+  <section id="s7">
+    <div class="section-header">
+      <span class="section-num">07</span>
+      <h2>Indexes</h2>
+    </div>
+    <p>Indexes improve query performance by allowing MongoDB to find documents without scanning every document in a collection.</p>
+
+    <div class="callout">
+      <div class="callout-icon">⚠️</div>
+      <p><strong>Trade-off:</strong> Indexes speed up reads but slow down writes (insert/update/delete) because indexes must be updated too. Create indexes only on fields you query frequently.</p>
+    </div>
+
+    <h3>Creating Indexes</h3>
+    <div class="code-label">mongosh</div>
+    <pre><span class="comment">// Single field index (1 = ascending, -1 = descending)</span>
+db.<span class="method">students</span>.<span class="method">createIndex</span>(<span class="brace">{</span> name: 1 <span class="brace">}</span>)
+
+<span class="comment">// Compound index</span>
+db.<span class="method">students</span>.<span class="method">createIndex</span>(<span class="brace">{</span> year: 1, branch: 1 <span class="brace">}</span>)
+
+<span class="comment">// Unique index</span>
+db.<span class="method">students</span>.<span class="method">createIndex</span>(<span class="brace">{</span> email: 1 <span class="brace">}</span>, <span class="brace">{</span> unique: <span class="keyword">true</span> <span class="brace">}</span>)
+
+<span class="comment">// Text index (for full-text search)</span>
+db.<span class="method">articles</span>.<span class="method">createIndex</span>(<span class="brace">{</span> content: <span class="string">"text"</span> <span class="brace">}</span>)
+
+<span class="comment">// TTL index (auto-expire after seconds)</span>
+db.<span class="method">sessions</span>.<span class="method">createIndex</span>(<span class="brace">{</span> createdAt: 1 <span class="brace">}</span>, <span class="brace">{</span> expireAfterSeconds: 3600 <span class="brace">}</span>)
+
+<span class="comment">// List all indexes</span>
+db.<span class="method">students</span>.<span class="method">getIndexes</span>()
+
+<span class="comment">// Drop an index</span>
+db.<span class="method">students</span>.<span class="method">dropIndex</span>(<span class="string">"name_1"</span>)</pre>
+
+    <h3>Explain Query (Check Index Usage)</h3>
+    <div class="code-label">mongosh</div>
+    <pre>db.<span class="method">students</span>.<span class="method">find</span>(<span class="brace">{</span> name: <span class="string">"Sameeksha"</span> <span class="brace">}</span>).<span class="method">explain</span>(<span class="string">"executionStats"</span>)
+<span class="comment">// Look for "IXSCAN" (index scan) vs "COLLSCAN" (collection scan)</span></pre>
+  </section>
+
+  <!-- ════════ 8. SCHEMA DESIGN ════════ -->
+  <section id="s8">
+    <div class="section-header">
+      <span class="section-num">08</span>
+      <h2>Schema Design</h2>
+    </div>
+
+    <h3>Embedding vs Referencing</h3>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-icon">📎</div>
+        <h4>Embedding (Denormalization)</h4>
+        <p>Store related data within the same document. Best for data that is always read together and doesn't change frequently.</p>
+      </div>
+      <div class="card">
+        <div class="card-icon">🔗</div>
+        <h4>Referencing (Normalization)</h4>
+        <p>Store a reference (ObjectId) to another document. Best for large sub-documents accessed independently.</p>
+      </div>
+    </div>
+
+    <div class="code-label">embedding example</div>
+    <pre><span class="comment">// Blog post with embedded comments</span>
+<span class="brace">{</span>
+  title: <span class="string">"MongoDB Notes by Sameeksha"</span>,
+  content: <span class="string">"..."</span>,
+  comments: [
+    <span class="brace">{</span> user: <span class="string">"Alice"</span>, text: <span class="string">"Great post!"</span>, date: ISODate(<span class="string">"2024-01-01"</span>) <span class="brace">}</span>,
+    <span class="brace">{</span> user: <span class="string">"Bob"</span>,   text: <span class="string">"Very helpful"</span>, date: ISODate(<span class="string">"2024-01-02"</span>) <span class="brace">}</span>
+  ]
+<span class="brace">}</span></pre>
+
+    <div class="code-label">referencing example</div>
+    <pre><span class="comment">// Order references customer by _id</span>
+<span class="brace">{</span>
+  orderId: <span class="string">"ORD-1001"</span>,
+  customerId: ObjectId(<span class="string">"64e1a2b3c4d5e6f7a8b9c0d1"</span>),
+  total: 4500,
+  items: [<span class="brace">{</span> product: <span class="string">"Laptop"</span>, qty: 1, price: 4500 <span class="brace">}</span>]
+<span class="brace">}</span></pre>
+  </section>
+
+  <!-- ════════ 9. RELATIONSHIPS ════════ -->
+  <section id="s9">
+    <div class="section-header">
+      <span class="section-num">09</span>
+      <h2>Relationships</h2>
+    </div>
+
+    <h3>One-to-One</h3>
+    <p>Embed the related document directly. Example: a user and their profile settings.</p>
+
+    <h3>One-to-Many</h3>
+    <p>Use an array of embedded documents (if small) or store the parent's <code>_id</code> in the child (if large). Example: one author → many books.</p>
+
+    <h3>Many-to-Many</h3>
+    <p>Store arrays of references in both documents or use an intermediary collection. Example: students ↔ courses.</p>
+
+    <div class="code-label">many-to-many via arrays</div>
+    <pre><span class="comment">// Student document</span>
+<span class="brace">{</span> _id: ObjectId(<span class="string">"s1"</span>), name: <span class="string">"Sameeksha"</span>, courseIds: [ObjectId(<span class="string">"c1"</span>), ObjectId(<span class="string">"c2"</span>)] <span class="brace">}</span>
+
+<span class="comment">// Course document</span>
+<span class="brace">{</span> _id: ObjectId(<span class="string">"c1"</span>), title: <span class="string">"MongoDB"</span>, studentIds: [ObjectId(<span class="string">"s1"</span>), ObjectId(<span class="string">"s3"</span>)] <span class="brace">}</span></pre>
+  </section>
+
+  <!-- ════════ 10. MONGOOSE ════════ -->
+  <section id="s10">
+    <div class="section-header">
+      <span class="section-num">10</span>
+      <h2>Mongoose ODM</h2>
+    </div>
+    <p>Mongoose is an Object Data Modeling (ODM) library for MongoDB and Node.js. It provides schema validation, middleware, and a rich query API.</p>
+
+    <h3>Install & Connect</h3>
+    <div class="code-label">bash</div>
+    <pre>npm install mongoose</pre>
+
+    <div class="code-label">javascript</div>
+    <pre><span class="keyword">const</span> mongoose = require(<span class="string">'mongoose'</span>)
+
+mongoose.<span class="method">connect</span>(<span class="string">'mongodb://localhost:27017/mydb'</span>)
+  .<span class="method">then</span>(() => console.<span class="method">log</span>(<span class="string">'Connected to MongoDB'</span>))
+  .<span class="method">catch</span>(err => console.<span class="method">error</span>(err))</pre>
+
+    <h3>Define a Schema & Model</h3>
+    <div class="code-label">javascript</div>
+    <pre><span class="keyword">const</span> studentSchema = <span class="keyword">new</span> mongoose.<span class="method">Schema</span>(<span class="brace">{</span>
+  name: <span class="brace">{</span> type: String, required: <span class="keyword">true</span>, trim: <span class="keyword">true</span> <span class="brace">}</span>,
+  email: <span class="brace">{</span> type: String, required: <span class="keyword">true</span>, unique: <span class="keyword">true</span> <span class="brace">}</span>,
+  year: <span class="brace">{</span> type: Number, min: 1, max: 4 <span class="brace">}</span>,
+  skills: [String],
+  createdAt: <span class="brace">{</span> type: Date, default: Date.now <span class="brace">}</span>
+<span class="brace">}</span>)
+
+<span class="keyword">const</span> Student = mongoose.<span class="method">model</span>(<span class="string">'Student'</span>, studentSchema)</pre>
+
+    <h3>CRUD with Mongoose</h3>
+    <div class="code-label">javascript</div>
+    <pre><span class="comment">// Create</span>
+<span class="keyword">const</span> s = <span class="keyword">new</span> <span class="method">Student</span>(<span class="brace">{</span> name: <span class="string">"Sameeksha"</span>, email: <span class="string">"s@mail.com"</span>, year: 3 <span class="brace">}</span>)
+<span class="keyword">await</span> s.<span class="method">save</span>()
+
+<span class="comment">// Read</span>
+<span class="keyword">const</span> students = <span class="keyword">await</span> Student.<span class="method">find</span>(<span class="brace">{</span> year: 3 <span class="brace">}</span>)
+<span class="keyword">const</span> one = <span class="keyword">await</span> Student.<span class="method">findById</span>(id)
+
+<span class="comment">// Update</span>
+<span class="keyword">await</span> Student.<span class="method">findByIdAndUpdate</span>(id, <span class="brace">{</span> year: 4 <span class="brace">}</span>, <span class="brace">{</span> new: <span class="keyword">true</span> <span class="brace">}</span>)
+
+<span class="comment">// Delete</span>
+<span class="keyword">await</span> Student.<span class="method">findByIdAndDelete</span>(id)</pre>
+
+    <h3>Mongoose Middleware (Hooks)</h3>
+    <div class="code-label">javascript</div>
+    <pre><span class="comment">// Pre-save hook — hash password before saving</span>
+studentSchema.<span class="method">pre</span>(<span class="string">'save'</span>, <span class="keyword">async function</span>(next) <span class="brace">{</span>
+  <span class="keyword">if</span> (<span class="keyword">this</span>.isModified(<span class="string">'password'</span>)) <span class="brace">{</span>
+    <span class="keyword">this</span>.password = <span class="keyword">await</span> bcrypt.<span class="method">hash</span>(<span class="keyword">this</span>.password, 10)
+  <span class="brace">}</span>
+  <span class="method">next</span>()
+<span class="brace">}</span>)</pre>
+  </section>
+
+  <!-- ════════ 11. TRANSACTIONS ════════ -->
+  <section id="s11">
+    <div class="section-header">
+      <span class="section-num">11</span>
+      <h2>Transactions</h2>
+    </div>
+    <p>MongoDB supports multi-document ACID transactions (since v4.0 for replica sets, v4.2 for sharded clusters). Use transactions when multiple documents must be updated atomically.</p>
+
+    <div class="code-label">javascript (Mongoose)</div>
+    <pre><span class="keyword">const</span> session = <span class="keyword">await</span> mongoose.<span class="method">startSession</span>()
+session.<span class="method">startTransaction</span>()
+
+<span class="keyword">try</span> <span class="brace">{</span>
+  <span class="comment">// Debit from account A</span>
+  <span class="keyword">await</span> Account.<span class="method">findByIdAndUpdate</span>(
+    accountA, <span class="brace">{</span> $<span class="method">inc</span>: <span class="brace">{</span> balance: -1000 <span class="brace">}</span> <span class="brace">}</span>, <span class="brace">{</span> session <span class="brace">}</span>
+  )
+
+  <span class="comment">// Credit to account B</span>
+  <span class="keyword">await</span> Account.<span class="method">findByIdAndUpdate</span>(
+    accountB, <span class="brace">{</span> $<span class="method">inc</span>: <span class="brace">{</span> balance: 1000 <span class="brace">}</span> <span class="brace">}</span>, <span class="brace">{</span> session <span class="brace">}</span>
+  )
+
+  <span class="keyword">await</span> session.<span class="method">commitTransaction</span>()
+  console.<span class="method">log</span>(<span class="string">"Transaction successful"</span>)
+<span class="brace">}</span> <span class="keyword">catch</span> (err) <span class="brace">{</span>
+  <span class="keyword">await</span> session.<span class="method">abortTransaction</span>()
+  console.<span class="method">error</span>(<span class="string">"Transaction aborted:"</span>, err)
+<span class="brace">}</span> <span class="keyword">finally</span> <span class="brace">{</span>
+  session.<span class="method">endSession</span>()
+<span class="brace">}</span></pre>
+  </section>
+
+  <!-- ════════ 12. SECURITY ════════ -->
+  <section id="s12">
+    <div class="section-header">
+      <span class="section-num">12</span>
+      <h2>Security & Best Practices</h2>
+    </div>
+
+    <h3>Authentication</h3>
+    <div class="code-label">mongosh</div>
+    <pre><span class="comment">// Create an admin user</span>
+use admin
+db.<span class="method">createUser</span>(<span class="brace">{</span>
+  user: <span class="string">"sameeksha_admin"</span>,
+  pwd: <span class="string">"securePass123!"</span>,
+  roles: [<span class="brace">{</span> role: <span class="string">"userAdminAnyDatabase"</span>, db: <span class="string">"admin"</span> <span class="brace">}</span>]
+<span class="brace">}</span>)
+
+<span class="comment">// Create a read-only user for a specific db</span>
+use myDatabase
+db.<span class="method">createUser</span>(<span class="brace">{</span>
+  user: <span class="string">"readUser"</span>,
+  pwd: <span class="string">"readPass"</span>,
+  roles: [<span class="brace">{</span> role: <span class="string">"read"</span>, db: <span class="string">"myDatabase"</span> <span class="brace">}</span>]
+<span class="brace">}</span>)</pre>
+
+    <h3>Best Practices</h3>
+    <ul class="notes-list">
+      <li><strong>Enable authentication</strong> — Always set <code>security.authorization: enabled</code> in <code>mongod.conf</code></li>
+      <li><strong>Principle of least privilege</strong> — Grant only the permissions each user needs</li>
+      <li><strong>Use TLS/SSL</strong> — Encrypt data in transit between client and server</li>
+      <li><strong>Validate inputs</strong> — Use JSON Schema validation to enforce document structure</li>
+      <li><strong>Regular backups</strong> — Use <code>mongodump</code> / <code>mongorestore</code> or MongoDB Atlas snapshots</li>
+      <li><strong>Limit exposed ports</strong> — Never expose port 27017 to the public internet without a firewall</li>
+      <li><strong>Use connection pooling</strong> — Mongoose handles this automatically</li>
+      <li><strong>Monitor with Atlas / Ops Manager</strong> — Track slow queries, index usage, and replication lag</li>
+      <li><strong>Avoid <code>$where</code> operator</strong> — It executes JavaScript and is a security risk</li>
+      <li><strong>Index wisely</strong> — Use <code>explain()</code> to identify missing or unused indexes</li>
+    </ul>
+
+    <h3>Backup & Restore</h3>
+    <div class="code-label">bash</div>
+    <pre><span class="comment"># Backup a database</span>
+mongodump --db myDatabase --out /backup/
+
+<span class="comment"># Restore a database</span>
+mongorestore --db myDatabase /backup/myDatabase/
+
+<span class="comment"># Export to JSON</span>
+mongoexport --db myDatabase --collection students --out students.json
+
+<span class="comment"># Import from JSON</span>
+mongoimport --db myDatabase --collection students --file students.json</pre>
+  </section>
+
+</div>
+
+<!-- ════════ FOOTER ════════ -->
+<footer>
+  <p>MongoDB Complete Notes &nbsp;|&nbsp; Prepared by <strong>Sameeksha</strong> &nbsp;|&nbsp; 2025</p>
+  <p style="margin-top:6px; font-size:.75rem; opacity:.5;">© All rights reserved · For educational purposes</p>
+</footer>
+
+</body>
+</html>
